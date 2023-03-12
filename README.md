@@ -36,13 +36,34 @@
     
 ### time tabel   
 2023.03.07 프로젝트 계획 발표 및 시작
+
 - 2023.03.07 데이터 수집 완료(image resize 680, 510)
 - 2023.03.08 labeling 완료
+
 - 2023.03.09 YOLOv5 모델 학습완료\
     accurancy 0.65 미만
     - 개선방안\
         데이터 추가 수집\
         OCR시도\
         CNN으로 전환
+        
 - 2023.03.10 OCR 사용\
-    인식불가
+    인식불가\
+    - 문제인식
+        데이터량의 부족에 의한 학습부족 예상
+    - 개선방향\
+        계량기의 디스플레이 만을 크롭,\
+        랜덤으로 4장을 일정 간격으로 합성 5000장의 데이터를 생성\
+        추가 라벨링 진행\
+        ![10](https://user-images.githubusercontent.com/107936957/224549810-df8dedce-8add-4256-8a18-7c1cb9563f59.png)
+
+- 2023.03.11\
+    웹 사이트 제작 진행\
+    처음 진행하는 웹 프로젝트. 학습 필요\
+ 
+- 2023.03.12\
+    계약종별 메뉴 제작,\
+    button click -> 해당 계약종에 따른 content 표시\
+    Flask 웹사이트연동,\
+    button clcik -> cam on\
+    ![New project](https://user-images.githubusercontent.com/107936957/224550603-d049271b-94cb-446a-ac05-67d4f4d6b3be.gif)
