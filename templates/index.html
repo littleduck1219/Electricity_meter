@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>전기요금 계산기</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/meyer-reset/2.0/reset.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js'></script>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/style.css') }}">
+    <script type="text/javascript" src="{{ url_for('static', filename='js/script.js') }}"></script>
+<!--    <link rel="stylesheet" type="text/css" href="css/style.css">-->
+<!--    <script type="text/javascript" src="js/script.js"></script>-->
+    <script src="toastr.js"></script>
+    <script type="text/javascript">
+	function calculate()
+	{
+		try
+		{
+			// 기본값 셋팅
+			var fundRate = 0.037;		// 3.7% 고정
+
+			var bigFamilyPrice = 0;		// 대가족 할인액
+			var childPrice = 0;			// 3자녀 할인액
+			var lifePrice = 0;			// 생명유지장치 할인액
+			var lastMinPrice = 0;		// 최종 할인 금액
+			var discount_0_3 = 0;        // 30% 할인 금액
+
+			// 기본 요금을 계산한다.
+			var usage = ($('input[name=usage]').val() == '') ? 0 : parseInt($('input[name=usage]').val());
+			var basicFee = 0;
+
+
+			if( $('select[name=option3] option:selected').val() == '7'
+					|| $('select[name=option3] option:selected').val() == '8' )
+			{
+   			    //하계 기본요금
+				if( usage <= 300 )
+					basicFee = 910;
+				else if( usage <= 450 )
+					basicFee = 1600;
+				else if( usage > 450 )
+					basicFee = 7300;
+			} else{
+				//하계이외  기본요금
+				if( usage <= 200 )
+					basicFee = 910;
+				else if( usage <= 400 )
+					basicFee = 1600;
+				else if( usage > 400 )
+					basicFee = 7300;
+			}
+
+			// 원단위 절사
+			basicFee = Math.floor(basicFee / 10) * 10;
+
+			// 기본요금 셋팅
+			$('.isHome').html( ($('input[name=isHome]:checked').val() == 'Y' ) ? '주거용' : '비주거용' );
+			$('.usage').html( usage );
+			$('.basicFee').html( numberFormat(basicFee) + '원' );
+
+			// 사용량에 따라서 구간별 요금을 적용한다.
+			var usagePrice = 0;
+
+			if( $('select[name=option3] option:selected').val() == '7' || $('select[name=option3] option:selected').val() == '8' ){
+
+				if( usage <= 300 ){
+					usagePrice = usage  *  112;   //1단계
+				}
+				else if( usage > 300  && usage <= 450 ){
+					usagePrice = 300 *  112;       //1단계
+					usagePrice += (usage - 300)  *  206.6;  //2단계
+				}
+				else if( usage > 450 && usage <= 1000 ){
+					usagePrice = 300 *  112;       //1단계
+				    usagePrice += 150 *  206.6;      //2단계
+					usagePrice += (usage - 450)  *  299.3; //3단계
+				}
+				else if( usage > 1000 ){
+				// 슈퍼유저요금 : 하계(7월 1일~8월 31일) 1,000kWh초과 전력량요금은 728.2원/kWh 적용
+					usagePrice = 300 *  112;       //1단계
+			        usagePrice += 150 *  206.6;      //2단계
+				    usagePrice += 550  *  299.3;     //3단계
+					usagePrice += (usage - 1000)  *  728.2; //4단계
+				}
+
+
+			} else {
+
+				if( usage <= 200 ){
+					usagePrice = usage  *  112; //1단계
+				}
+				else if(usage > 200 && usage <= 400 ){
+					usagePrice = 200 *  112;       //1단계
+					usagePrice += (usage - 200)  *  206.6;   //2단계
+				}
+				else if(usage > 400 && usage <= 1000 ){
+					usagePrice = 200 *  112;           //1단계
+			      	usagePrice += 200  *  206.6;         //2단계
+					usagePrice += (usage - 400)  *  299.3; //3단계
+				}
+				else if( usage > 1000 ){
+					usagePrice = 200 *  112;          //1단계
+			      	usagePrice += 200 *  206.6;         //2단계
+					usagePrice += 600 *  299.3;        //3단계
+					if( $('select[name=option3] option:selected').val() == '12'
+							|| $('select[name=option3] option:selected').val() == '1'
+						    || $('select[name=option3] option:selected').val() == '2'){
+					//※ 슈퍼유저요금 : 동계(12월 1일~2월 말일) 1,000kWh초과 전력량요금은 728.2원/kWh 적용
+					usagePrice += (usage - 1000)  *  728.2; //4단계
+					} else {
+					usagePrice += (usage - 1000)  *  299.3; //3단계
+					}
+				}
+			}
+
+			// 원단위 절사
+			usagePrice = Math.floor(usagePrice);
+
+			// 원단위 절사
+			$('.usageFee').html( numberFormat(usagePrice) + '원' );
+
+			//기후환경요금
+			var envTax = 0;
+			{
+				envTax = parseInt(usage * 9);
+				$('.envTax').html( numberFormat(envTax) + '원' );
+			}
+
+			//연료비조정액
+			var fuelTax = 0;
+			{
+				fuelTax = parseInt(usage *5);
+				$('.fuelTax').html( numberFormat(fuelTax) + '원' );
+			}
+
+			// 전기요금 합산금액(전기요금계)
+			var totalPrice = (basicFee + usagePrice  + envTax + fuelTax);
+
+			//필수사용량 보장공제
+			//비주거용은 해당사항없음
+			// 21.7.1 - 22.6.30 , 월 200kWh이하 사용시 일반 2000 복지할인대상자4000월 할인
+
+// 		    var reqUsagePrice = 0;
+// 		    $('.req_usage').html('0원');
+// 			if($('input[name=isHome]:checked').val() == 'Y'){
+
+
+// 			    var month = "0" + $('select[name=option3] option:selected').val();
+// 			    month = month.slice(-2);
+
+// 			    var cal = String(year) + String(month);
+
+// 			    //mont2자리로해서 2107부터 2206이면할인률적용하도록한다.
+// 			    if( usage <= 200 ){
+// 			    	if(cal >= 2107 && cal < 2207 ){
+// 			    		if($('input[name=option1]:checked').val() == '0'
+// 			    				&&  $('select[name=option2] option:selected').val() == ''){
+// 				    		var priceArr = [0,0,90,180,272,362,452,544,634,724,816,906,996,1086,1178,1268,1358,1450,1540,1630,1722,1812,1902,1992];
+// 				    		if(usage < 24){
+// 				    			reqUsagePrice = priceArr[usage];
+// 					    		$('.req_usage').html( numberFormat(reqUsagePrice) + '원');
+// 				    		} else {
+// 				    			reqUsagePrice = 2000;
+// 					    		$('.req_usage').html( numberFormat(reqUsagePrice) + '원');
+// 				    		}
+// 			    		} else {
+// 			    			reqUsagePrice = 4000;
+// 				    		$('.req_usage').html( numberFormat(reqUsagePrice) + '원');
+// 				    	}
+// 			    	}
+// 			    }
+// 			}
+
+		    var reqUsagePrice = 0;
+		    $('.req_usage').html('0원');
+			if($('input[name=isHome]:checked').val() == 'Y'){
+
+	    		if($('input[name=option1]:checked').val() == '0'
+	    				&&  $('select[name=option2] option:selected').val() == ''){
+
+	    			reqUsagePrice = 0;
+		    		$('.req_usage').html( numberFormat(reqUsagePrice) + '원');
+
+	    		} else {
+		    		var priceArr = [0,842,955,1067,1181,1294,1406,1520,1632,1745,1859,1971,2084,2196,2310,2423,2535,2649,2761,2874,2988,3100,3213,3325,3439,3552,3664,3778,3890];
+		    		if(usage < 29){
+		    			reqUsagePrice = priceArr[usage];
+			    		$('.req_usage').html( numberFormat(reqUsagePrice) + '원');
+		    		} else if (usage <= 200) {
+		    			reqUsagePrice = 4000;
+			    		$('.req_usage').html( numberFormat(reqUsagePrice) + '원');
+		    		}
+		    	}
+
+			}
+
+			totalPrice = parseInt(totalPrice - reqUsagePrice);
+
+			var welfarePrice = 0;
+
+			//장애인 할인
+			var dispersonPrice = 0;
+
+			// 복지할인 금액 계산
+			if( $('input[name=option1]:checked').val() == '0' )
+			{
+
+				if( $('select[name=option2] option:selected').val() != '')
+				{
+					var option2 = parseInt($('select[name=option2] option:selected').val());
+					switch(option2)
+					{
+					case 6 :
+						// 기초생활(주거·교육)
+						if( $('select[name=option3] option:selected').val() == '6'
+								|| $('select[name=option3] option:selected').val() == '7'
+								|| $('select[name=option3] option:selected').val() == '8' ){
+							welfarePrice = 12000;
+						} else {
+							welfarePrice = 10000;
+						}
+						break;
+					case 7 :
+						// 사회복지시설
+						welfarePrice = (totalPrice * 0.3);
+						break;
+					case 8 :
+						// 차상위계층
+						if( $('select[name=option3] option:selected').val() == '6'
+								|| $('select[name=option3] option:selected').val() == '7'
+								|| $('select[name=option3] option:selected').val() == '8' ){
+							welfarePrice = 10000;
+
+						} else {
+							welfarePrice = 8000;
+						}
+						break;
+					default :
+						// 그외
+						if( $('select[name=option3] option:selected').val() == '6'
+							|| $('select[name=option3] option:selected').val() == '7'
+							|| $('select[name=option3] option:selected').val() == '8' ){
+							welfarePrice = 20000;
+
+						} else {
+							welfarePrice = 16000;
+						}
+						break;
+					}
+
+					totalPrice = parseInt(totalPrice - welfarePrice);
+					$('.welfarePrice').html( numberFormat(welfarePrice) + '원');
+				}
+				else
+				{
+					welfarePrice = 0;
+					$('.welfarePrice').html( numberFormat(welfarePrice) + '원');
+				}
+			}
+			else
+			{
+
+				if( $('select[name=option2] option:selected').val() == '5'
+					|| $('select[name=option2] option:selected').val() == '6'
+					|| $('select[name=option2] option:selected').val() == '8')
+				{
+					var option2 = parseInt($('select[name=option2] option:selected').val());
+					switch(option2)
+					{
+					case 6 :
+						// 기초생활(주거·교육)
+						if( $('select[name=option3] option:selected').val() == '6'
+								|| $('select[name=option3] option:selected').val() == '7'
+								|| $('select[name=option3] option:selected').val() == '8' ){
+							welfarePrice = 12000;
+						} else {
+							welfarePrice = 10000;
+						}
+						break;
+					case 7 :
+						// 사회복지시설
+						welfarePrice = (totalPrice * 0.3);
+						break;
+					case 8 :
+						// 차상위계층
+						if( $('select[name=option3] option:selected').val() == '6'
+								|| $('select[name=option3] option:selected').val() == '7'
+								|| $('select[name=option3] option:selected').val() == '8' ){
+							welfarePrice = 10000;
+
+						} else {
+							welfarePrice = 8000;
+						}
+						break;
+					default :
+						// 그외
+						if( $('select[name=option3] option:selected').val() == '6'
+							|| $('select[name=option3] option:selected').val() == '7'
+							|| $('select[name=option3] option:selected').val() == '8' ){
+							welfarePrice = 20000;
+
+						} else {
+							welfarePrice = 16000;
+						}
+						break;
+					}
+
+					totalPrice = parseInt(totalPrice - welfarePrice);
+					$('.welfarePrice').html( numberFormat(welfarePrice) + '원');
+
+				} else if($('select[name=option2] option:selected').val() == '4'){
+					//장애인 할인은 정률(대가족, 3자녀, 생명유지, 출산가구) 할인 동시 할인일 경우 할인금액 큰 금액 적용 입니다.
+					if( $('select[name=option3] option:selected').val() == '6'
+						|| $('select[name=option3] option:selected').val() == '7'
+						|| $('select[name=option3] option:selected').val() == '8' ){
+						dispersonPrice = 20000;
+
+					} else {
+						dispersonPrice = 16000;
+					}
+
+				} else
+				{
+					welfarePrice = 0;
+					$('.welfarePrice').html( numberFormat(welfarePrice) + '원');
+				}
+			}
+
+			// 30%할인계산기준
+			discount_0_3 = parseInt(totalPrice * 0.3);
+
+			//해당없음
+			if( $('input[name=option1]:checked').val() == '0' )
+			{
+				$('.bigFamilyPrice').html( '0원' );
+				$('.childPrice').html('0원');
+				$('.lifePrice').html('0원');
+				$('.deliveryPrice').html('0원');
+			}else{
+
+				var discount_0_3_temp = discount_0_3;
+				if( $('input[name=option1]:checked').val() != '3' ){
+					if( discount_0_3_temp > 16000){
+						discount_0_3_temp = 16000;
+					}
+				}
+				console.log('장애인vs낫장애인',dispersonPrice,discount_0_3_temp);
+
+				//장애인 할인은 정률(대가족, 3자녀, 생명유지, 출산가구) 할인 동시 할인일 경우 할인금액 큰 금액 적용 입니다.
+				if(dispersonPrice > discount_0_3_temp){
+					totalPrice = parseInt(totalPrice - dispersonPrice);
+					$('.welfarePrice').html( numberFormat(dispersonPrice) + '원');
+					$('.bigFamilyPrice').html('0원');
+					$('.childPrice').html('0원');
+					$('.lifePrice').html('0원');
+					$('.deliveryPrice').html('0원');
+				} else{
+
+					if($('select[name=option2] option:selected').val() == '4'){
+						$('.welfarePrice').html('0원');
+					}
+
+					//대가족 요금할인액
+					if( $('input[name=option1]:checked').val() == '1' )
+					{
+						( discount_0_3 > 16000)? bigFamilyPrice = 16000 : bigFamilyPrice = discount_0_3;
+						$('.bigFamilyPrice').html( numberFormat(parseInt(bigFamilyPrice)) + '원' );
+						$('.childPrice').html('0원');
+						$('.lifePrice').html('0원');
+						$('.deliveryPrice').html('0원');
+						lastMinPrice = bigFamilyPrice;
+					}
+
+					// 3자녀가구 요금 할인액
+					if( $('input[name=option1]:checked').val() == '2' )
+					{
+						// 16,000원 초과라면 16,000으로만 계산한다.
+						( discount_0_3 > 16000)? childPrice = 16000 : childPrice = discount_0_3;
+						$('.bigFamilyPrice').html('0원');
+						$('.childPrice').html( numberFormat(parseInt(childPrice)) + '원' );
+						$('.lifePrice').html('0원');
+						$('.deliveryPrice').html('0원');
+						lastMinPrice = childPrice;
+					}
+
+					// 생명유지장치(대가족 계산과 같으나 limit 이 없음)
+					if( $('input[name=option1]:checked').val() == '3' )
+					{
+						lifePrice = discount_0_3;
+						$('.bigFamilyPrice').html('0원');
+						$('.lifePrice').html( numberFormat(parseInt(lifePrice)) + '원' );
+						$('.childPrice').html('0원');
+						$('.deliveryPrice').html('0원');
+						lastMinPrice = lifePrice;
+					}
+
+					// 출산가구 요금 할인액
+					if( $('input[name=option1]:checked').val() == '4' )
+					{
+						( discount_0_3 > 16000)? deliveryPrice = 16000 : deliveryPrice = discount_0_3;
+						$('.bigFamilyPrice').html('0원');
+						$('.lifePrice').html('0원');
+						$('.childPrice').html('0원');
+						$('.deliveryPrice').html( numberFormat(parseInt(deliveryPrice)) + '원' );
+						lastMinPrice = deliveryPrice;
+					}
+
+					totalPrice -= lastMinPrice;
+				}
+
+			}
+
+
+			if( totalPrice < 0 ) totalPrice = 0;
+			$('.totalPrice').html( numberFormat(totalPrice) + '원' );
+
+			// 부가가치세
+			var tax = 0;
+			{
+				tax = parseInt(totalPrice * 0.1);
+				$('.tax').html( numberFormat(tax) + '원');
+			}
+
+			// 기금
+			var fund = 0;
+			{
+				fund = Math.floor(parseInt(totalPrice * fundRate) / 10) * 10;
+				$('.fund').html( numberFormat(fund) + '원' );
+			}
+
+
+			// 청구 금액
+			var resultPrice = 0;
+			{
+				resultPrice = Math.floor(parseInt(totalPrice + tax + fund) / 10) * 10;		// 10원미만 절사
+				$('.resultPrice').html( numberFormat(resultPrice) + '원' );
+			}
+
+
+			// 결과를 보여준다.
+			$('#result').show();
+		}catch(e){
+			alert(e);
+		}
+	}
+
+
+
+
+
+
+
+    </script>
+
+
+</head>
+<body>
+<div id="header">전기요금 계산기</div>
+<div id="content">
+    <div class=box>
+        <div class="container">
+            <div class="buttons">
+                <div>
+                    <div>
+                        <form>
+                            <button class="menu-button" type="button" data-content-id="content1"
+                                    name="contract-type"
+                                    value="residential-low">
+                                <a href="#">주택용(저압)</a>
+                            </button>
+
+                            <button class="menu-button" type="button" data-content-id="content2"
+                                    name="contract-type"
+                                    value="residential-high">
+                                <a href="#" style="text-decoration:none">주택용(고압)</a>
+                            </button>
+                            <button class="menu-button" type="button" data-content-id="content3"
+                                    name="contract-type"
+                                    value="general-1">
+                                <a href="#" style="text-decoration:none">일반용(갑)Ⅰ</a>
+                            </button>
+                            <button class="menu-button" type="button" data-content-id="content5"
+                                    name="contract-type"
+                                    value="general-2">
+                                <a href="#" style="text-decoration:none">일반용(갑)Ⅱ</a>
+                            </button>
+                            <button class="menu-button" type="button" data-content-id="content6"
+                                    name="contract-type"
+                                    value="general-3">
+                                <a href="#" style="text-decoration:none">일반용(을)</a>
+                            </button>
+                            <button class="menu-button" type="button" data-content-id="content7"
+                                    name="contract-type"
+                                    value="single-household">
+                                <a href="#" style="text-decoration:none">1주택 수 가구</a>
+                            </button>
+                            <button class="menu-button" type="button" data-content-id="content8"
+                                    name="contract-type"
+                                    value="education-1">
+                                <a href="#" style="text-decoration:none">교육용(갑)</a>
+                            </button>
+                            <button class="menu-button" type="button" data-content-id="content9"
+                                    name="contract-type"
+                                    value="education-2">
+                                <a href="#" style="text-decoration:none">교육용(을)</a>
+                            </button>
+                            <button class="menu-button" type="button" data-content-id="content10"
+                                    name="contract-type"
+                                    value="industrial-1">
+                                <a href="#" style="text-decoration:none">산업용(갑)Ⅰ</a>
+                            </button>
+                            <button class="menu-button" type="button" data-content-id="content11"
+                                    name="contract-type"
+                                    value="industrial-2">
+                                <a href="#" style="text-decoration:none">산업용(갑)Ⅱ</a>
+                            </button>
+                            <button class="menu-button" type="button" data-content-id="content12"
+                                    name="contract-type"
+                                    value="industrial-3">
+                                <a href="#" style="text-decoration:none">산업용(을)</a>
+                            </button>
+                            <button class="menu-button" type="button" data-content-id="content13"
+                                    name="contract-type"
+                                    value="temporary-1">
+                                <a href="#" style="text-decoration:none">임시(갑)</a>
+                            </button>
+                            <button class="menu-button" type="button" data-content-id="content14"
+                                    name="contract-type"
+                                    value="temporary-2">
+                                <a href="#" style="text-decoration:none">임시(을)</a>
+                            </button>
+                            <button class="menu-button" type="button" data-content-id="content15"
+                                    name="contract-type"
+                                    value="streetlight">
+                                <a href="#" style="text-decoration:none">가로등(을)</a>
+                            </button>
+                            <button class="menu-button" type="button" data-content-id="content16"
+                                    name="contract-type"
+                                    value="night-electricity">
+                                <a href="#" style="text-decoration:none">심야전력(갑)</a>
+                            </button>
+                            <button class="menu-button" type="button" data-content-id="content17"
+                                    name="contract-type"
+                                    value="agriculture-1">
+                                <a href="#" style="text-decoration:none">농사용(갑)</a>
+                            </button>
+                            <button class="menu-button" type="button" data-content-id="content18"
+                                    name="contract-type"
+                                    value="agriculture-2">
+                                <a href="#" style="text-decoration:none">농사용(을)</a>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="container-1">
+                <div>
+                    <div>
+                        <div>
+                            <br>
+                            <br>
+
+                        </div>
+                        <h2 class="h2tit">전기요금 청구액 계산방법<br>
+                            (TV수신료 별도)</h2>
+                        <br>
+                        <br>
+
+                        <div>
+                            <ol class="box_tv_ol">
+                                <li><span class="pointBl">① 기본요금</span></li>
+                                <br>
+                                <li><span class="pointBl">② 사용량요금</span></li>
+                                <br>
+                                <li><span class="pointBl">③ 전기요금계 = ① + ② - 복지할인</span></li>
+                                <br>
+                                <li><span class="pointBl">④ 부가가치세 = ③ × 10%</span></li>
+                                <br>
+                                <li><span class="pointBl">⑤ 전력산업기반기금 = ③ × 3.7%</span></li>
+                                <br>
+                                <li><span class="pointRe">⑥ 청구요금 합계 = ③ + ④ + ⑤</span></li>
+                                <br>
+                            </ol>
+                        </div>
+                        <div class="info_desc">
+                            <h5 class="ico_notice_sale">※ 자동이체 할인 적용 시 계산</h5>
+                            <ol class="txt_pay">
+                                <li>a. 상기 전기요금계(③) - (전월 납부 전기요금 × 0.01) &#91;1,000원 한도&#93;</li>
+                                <br>
+                                <li>b. 당월 청구요금 = a + 부가가치세(a × 10%) + 전력산업기반기금(a × 3.7%)</li>
+                                <br>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+                <div id="content1" class="contract-type1" style="display:none;">
+                    <div>
+                        <p>
+                            <br>
+                            <br>
+                            주택용(저압)은 계약전력 </br>
+                            3000kWh 미만일때 해당되요.</br>
+                            월 전기사용량이 200kWh 이하일 때 </br>
+                            4000원 할인이 적용되고</br>
+                            전기를 사용하지 않더라도 </br>
+                            최소 1000원이 부과돼요 </br>
+                            요금 계산에는 </br>
+                            전월 누전 수전 유효전력량이 필요해요</br>
+                            전자식 계량기의 </br>
+                            표준형, G-type, AE-type 경우 </br>
+                            07번과 04번이 필요해요 </br>
+                            저압식 전자식 계량기의 경우 </br>
+                            지난달 계측값을 </br>
+                            한국전력 홈페이지에서 확인이 가능해요.</br>
+                        </p>
+                        <div>
+                            <button class="net-button" type="button" data-content-id="net-link-kepco"
+                                    name="kepco-button"
+                                    value="kepco">
+                                <a href="https://cyber.kepco.co.kr/ckepco/front/jsp/CY/E/A/CYEAPP001_esb1.jsp"
+                                   style="text-decoration:none">확인하러 가기</a></button>
+                        </div>
+                        <br>
+                        <br>
+                        <br>
+                        <div>
+                            <p>요금을 계산해 드릴게요</p>
+                            <button class="cam-button" type="button" data-content-id="turn on cam"
+                                    name="cam-button"
+                                    value="cam">
+                                <a href="{{ url_for('video_feed') }}" style="text-decoration:none">계산하러 가기</a>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div id="content2" class="contract-type2" style="display:none;">
+                    <p>상업용(고압) 버튼에 표시할 내용</p>
+                </div>
+                <div id="content3" class="contract-type3" style="display:none;">
+                    <p>공업용(중압) 버튼에 표시할 내용</p>
+                </div>
+                <div id="content4" class="contract-type4" style="display:none;">
+                    <p>기타 버튼에 표시할 내용</p>
+                </div>
+                <div id="content5" class="contract-type5" style="display:none;">
+                    <p>기타 버튼에 표시할 내용</p>
+                </div>
+                <div id="content6" class="contract-type6" style="display:none;">
+                    <p>기타 버튼에 표시할 내용</p>
+                </div>
+                <div id="content7" class="contract-type7" style="display:none;">
+                    <p>기타 버튼에 표시할 내용</p>
+                </div>
+                <div id="content8" class="contract-type8" style="display:none;">
+                    <p>기타 버튼에 표시할 내용</p>
+                </div>
+                <div id="content9" class="contract-type9" style="display:none;">
+                    <p>기타 버튼에 표시할 내용</p>
+                </div>
+                <div id="content10" class="contract-type10" style="display:none;">
+                    <p>계약 유형 10에 대한 내용</p>
+                </div>
+                <div id="content11" class="contract-type11" style="display:none;">
+                    <p>계약 유형 11에 대한 내용</p>
+                </div>
+                <div id="content12" class="contract-type12" style="display:none;">
+                    <p>계약 유형 12에 대한 내용</p>
+                </div>
+                <div id="content13" class="contract-type13" style="display:none;">
+                    <p>계약 유형 13에 대한 내용</p>
+                </div>
+                <div id="content14" class="contract-type14" style="display:none;">
+                    <p>계약 유형 14에 대한 내용</p>
+                </div>
+                <div id="content15" class="contract-type15" style="display:none;">
+                    <p>계약 유형 15에 대한 내용</p>
+                </div>
+                <div id="content16" class="contract-type16" style="display:none;">
+                    <p>계약 유형 16에 대한 내용</p>
+                </div>
+                <div id="content17" class="contract-type17" style="display:none;">
+                    <p>계약 유형 17에 대한 내용</p>
+                </div>
+                <div id="content18" class="contract-type18" style="display:none;">
+                    <p>계약 유형 18에 대한 내용</p>
+                </div>
+            </div>
+            <div>
+            </div>
+        </div>
+        <tbody>
+        <tr>
+            <th scope="row">주거구분</th>
+            <td class="input">
+                <input type="radio" id="label_live_1" name="isHome" value="Y" checked="checked"/> <label
+                    for="label_live_1">주거용</label>
+                <input type="radio" id="label_live_2" name="isHome" value="N"/> <label for="label_live_2">비주거용</label>
+            </td>
+            <th scope="row">월선택</th>
+            <td class="input">
+                <select title="월선택" class="formSelect" style="width:160px;" name="option3">
+                    <option value="1">1월</option>
+                    <option value="2">2월</option>
+                    <option value="3">3월</option>
+                    <option value="4">4월</option>
+                    <option value="5">5월</option>
+                    <option value="6">6월</option>
+                    <option value="7">7월</option>
+                    <option value="8">8월</option>
+                    <option value="9">9월</option>
+                    <option value="10">10월</option>
+                    <option value="11">11월</option>
+                    <option value="12">12월</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <th scope="row">대가족요금/<br/>생명유지장치 요금</th>
+            <td colspan="3" class="input">
+                <input type="radio" id="label_family_1" name="option1" value="0" checked="checked"/> <label
+                    for="label_family_1">해당없음</label>
+                <input type="radio" id="label_family_2" name="option1" value="1"/> <label for="label_family_2">5인이상
+                가구</label>
+                <input type="radio" id="label_family_3" name="option1" value="2"/> <label for="label_family_3">3자녀이상
+                가구</label>
+                <input type="radio" id="label_family_4" name="option1" value="3"/> <label
+                    for="label_family_4">생명유지장치</label>
+                <input type="radio" id="label_family_5" name="option1" value="4"/> <label
+                    for="label_family_5">출산가구</label>
+            </td>
+        </tr>
+        <tr>
+            <th scope="row">복지할인요금</th>
+            <td class="input">
+                <select title="복지할인요금" class="formSelect" style="width:160px;" name="option2">
+                    <option value="">해당없음</option>
+                    <option value="1">독립유공자</option>
+                    <option value="2">국가유공자</option>
+                    <option value="3">5.18 민주유공자</option>
+                    <option value="4">장애인</option>
+                    <option value="5">기초생활(생계·의료)</option>
+                    <option value="6">기초생활(주거·교육)</option>
+                    <option value="7">사회복지시설</option>
+                    <option value="8">차상위계층</option>
+                </select>
+            </td>
+            <th scope="row">사용량</th>
+            <td class="input">
+                <input type="text" name="usage" style="width:150px;" title="사용량"/> KWh
+            </td>
+        </tr>
+        </tbody>
+
+        <div class="layer_calculator" id="cal_dialog" style="display:none;">
+            <div class="tit_calculator">
+                <p>wefasdfasdfaseraf</p>
+            </div>
+
+        </div>
+        <div id="footer"></div>
+    </div>
+</div>
+</body>
+</html>
