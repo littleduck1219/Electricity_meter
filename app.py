@@ -1,57 +1,96 @@
-from re import DEBUG, sub
-from flask import Flask, render_template, request, redirect, send_file, url_for
-from werkzeug.utils import secure_filename, send_from_directory
+import datetime
 import os
-import time
-import subprocess
+import argparse
+import io
+
+import numpy as np
+import pandas as pd
+
 import cv2
+from PIL import Image, ImageFont, ImageDraw
+import seaborn as sns
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch.autograd import Variable
+import torchvision
+from torchvision import models
+from torchvision import transforms
+from flask import Flask, render_template, Response, request, url_for, redirect, send_from_directory
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='templates')
+
+# Device
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+# Labels
+# Labels = {0: "one",
+#           1: "two",
+#           2: "three",
+#           3: "four",
+#           4: "five",
+#           5: "six",
+#           6: "seven",
+#           7: "eight",
+#           8: "nine",
+#           9: "zero",
+#           10: "meter",
+#           11: "dot"
+#           }
 
 
-uploads_dir = os.path.join(app.instance_path, 'uploads')
-
-os.makedirs(uploads_dir, exist_ok=True)
-
-@app.route("/")
-def hello_world():
+@app.route('/')  # 127.0.0.1
+def index():
     return render_template('index.html')
 
 
-@app.route("/detect", methods=['POST'])
-def detect():
-    if not request.method == "POST":
+camera = cv2.VideoCapture(0)
+camera.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+
+
+def generate_frames():
+    while True:
+        ref, frame = camera.read()  # 현재 영상을 받아옴
+        if not ref:
+            break
+        else:
+            ref, buffer = cv2.imencode('.jpg', frame)  # 현재 영상을 그림파일형태로 바꿈
+            frame = buffer.tobytes()
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')  # 그림파일들을 쌓아두고 호출을 기다림
+
+
+# cam load.
+@app.route('/video_feed')
+def video_feed():
+    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+
+models = {}
+
+DETECTION_URL = "/v1/object-detection/<model>"
+
+
+@app.route(DETECTION_URL, methods=["POST"])
+def predict(model):
+    if request.method != "POST":
         return
-    video = request.files['video']
-    video.save(os.path.join(uploads_dir, secure_filename(video.filename)))
-    print(video)
-    subprocess.run("ls")
-    subprocess.run(['python3', 'detect.py', '--source', os.path.join(uploads_dir, secure_filename(video.filename))])
 
-    # return os.path.join(uploads_dir, secure_filename(video.filename))
-    obj = secure_filename(video.filename)
-    return obj
+    if request.files.get("image"):
+        # Method 1
+        # with request.files["image"] as f:
+        #     im = Image.open(io.BytesIO(f.read()))
+
+        # Method 2
+        im_file = request.files["image"]
+        im_bytes = im_file.read()
+        im = Image.open(io.BytesIO(im_bytes))
+
+        if model in models:
+            results = models[model](im, size=640)  # reduce size=320 for faster inference
+            return results.pandas().xyxy[0].to_json(orient="records")
 
 
-@app.route("/opencam", methods=['GET'])
-def opencam():
-    print("here")
-    subprocess.run(['python3', 'detect.py', '--source', '0'])
-    return "done"
-    
-
-@app.route('/return-files', methods=['GET'])
-def return_file():
-    obj = request.args.get('obj')
-    loc = os.path.join("runs/detect", obj)
-    print(loc)
-    try:
-        return send_file(os.path.join("runs/detect", obj), attachment_filename=obj)
-        # return send_from_directory(loc, obj)
-    except Exception as e:
-        return str(e)
-
-# @app.route('/display/<filename>')
-# def display_video(filename):
-# 	#print('display_video filename: ' + filename)
-# 	return redirect(url_for('static/video_1.mp4', code=200))
+if __name__ == '__main__':
+    app.run(host="localhost", port=8000, debug=True)
