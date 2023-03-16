@@ -41,6 +41,38 @@ if (popupButton && popup && closeButton) {
   });
 }
 
+window.onload = () => {
+  $("#sendbutton").click(() => {
+    imagebox = $("#imagebox");
+    link = $("#link");
+    input = $("#imageinput")[0];
+    if (input.files && input.files[0]) {
+      let formData = new FormData();
+      formData.append("video", input.files[0]);
+      $.ajax({
+        url: "/detect", // fix this to your liking
+        type: "POST",
+        data: formData,
+        cache: false,
+        processData: false,
+        contentType: false,
+        error: function (data) {
+          console.log("upload error", data);
+          console.log(data.getAllResponseHeaders());
+        },
+        success: function (data) {
+          console.log(data);
+          // bytestring = data["status"];
+          // image = bytestring.split("'")[1];
+          $("#link").css("visibility", "visible");
+          $("#download").attr("href", "static/" + data);
+          console.log(data);
+        },
+      });
+    }
+  });
+};
+
 const buttons = document.querySelectorAll('.contract-type-button');
 
 if (buttons.length) {

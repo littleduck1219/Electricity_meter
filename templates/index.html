@@ -10,8 +10,8 @@
     <script src='https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js'></script>
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/style.css') }}">
     <script type="text/javascript" src="{{ url_for('static', filename='js/script.js') }}"></script>
-<!--    <link rel="stylesheet" type="text/css" href="css/style.css">-->
-<!--    <script type="text/javascript" src="js/script.js"></script>-->
+    <!--    <link rel="stylesheet" type="text/css" href="css/style.css">-->
+    <!--    <script type="text/javascript" src="js/script.js"></script>-->
     <script src="toastr.js"></script>
     <script type="text/javascript">
 	function calculate()
@@ -452,6 +452,14 @@
 
 
 
+
+
+
+
+
+
+
+
     </script>
 
 
@@ -470,7 +478,6 @@
                                     value="residential-low">
                                 <a href="#">주택용(저압)</a>
                             </button>
-
                             <button class="menu-button" type="button" data-content-id="content2"
                                     name="contract-type"
                                     value="residential-high">
@@ -630,8 +637,14 @@
                             <button class="cam-button" type="button" data-content-id="turn on cam"
                                     name="cam-button"
                                     value="cam">
-                                <a href="{{ url_for('video_feed') }}" style="text-decoration:none">계산하러 가기</a>
+                                <a href="{{ url_for('video_feed') }}" style="text-decoration:none">사진이 필요해요</a>
                             </button>
+                        </div>
+                        <div>
+                            <form action="/detect_image" method="post" enctype="multipart/form-data">
+                                <input type="file" name="image" accept="image/*">
+                                <input type="submit" value="사진이 있어요">
+                            </form>
                         </div>
                     </div>
                 </div>
@@ -690,68 +703,6 @@
             <div>
             </div>
         </div>
-        <tbody>
-        <tr>
-            <th scope="row">주거구분</th>
-            <td class="input">
-                <input type="radio" id="label_live_1" name="isHome" value="Y" checked="checked"/> <label
-                    for="label_live_1">주거용</label>
-                <input type="radio" id="label_live_2" name="isHome" value="N"/> <label for="label_live_2">비주거용</label>
-            </td>
-            <th scope="row">월선택</th>
-            <td class="input">
-                <select title="월선택" class="formSelect" style="width:160px;" name="option3">
-                    <option value="1">1월</option>
-                    <option value="2">2월</option>
-                    <option value="3">3월</option>
-                    <option value="4">4월</option>
-                    <option value="5">5월</option>
-                    <option value="6">6월</option>
-                    <option value="7">7월</option>
-                    <option value="8">8월</option>
-                    <option value="9">9월</option>
-                    <option value="10">10월</option>
-                    <option value="11">11월</option>
-                    <option value="12">12월</option>
-                </select>
-            </td>
-        </tr>
-        <tr>
-            <th scope="row">대가족요금/<br/>생명유지장치 요금</th>
-            <td colspan="3" class="input">
-                <input type="radio" id="label_family_1" name="option1" value="0" checked="checked"/> <label
-                    for="label_family_1">해당없음</label>
-                <input type="radio" id="label_family_2" name="option1" value="1"/> <label for="label_family_2">5인이상
-                가구</label>
-                <input type="radio" id="label_family_3" name="option1" value="2"/> <label for="label_family_3">3자녀이상
-                가구</label>
-                <input type="radio" id="label_family_4" name="option1" value="3"/> <label
-                    for="label_family_4">생명유지장치</label>
-                <input type="radio" id="label_family_5" name="option1" value="4"/> <label
-                    for="label_family_5">출산가구</label>
-            </td>
-        </tr>
-        <tr>
-            <th scope="row">복지할인요금</th>
-            <td class="input">
-                <select title="복지할인요금" class="formSelect" style="width:160px;" name="option2">
-                    <option value="">해당없음</option>
-                    <option value="1">독립유공자</option>
-                    <option value="2">국가유공자</option>
-                    <option value="3">5.18 민주유공자</option>
-                    <option value="4">장애인</option>
-                    <option value="5">기초생활(생계·의료)</option>
-                    <option value="6">기초생활(주거·교육)</option>
-                    <option value="7">사회복지시설</option>
-                    <option value="8">차상위계층</option>
-                </select>
-            </td>
-            <th scope="row">사용량</th>
-            <td class="input">
-                <input type="text" name="usage" style="width:150px;" title="사용량"/> KWh
-            </td>
-        </tr>
-        </tbody>
 
         <div class="layer_calculator" id="cal_dialog" style="display:none;">
             <div class="tit_calculator">
@@ -761,6 +712,69 @@
         </div>
         <div id="footer"></div>
     </div>
+    <tbody>
+    <tr>
+        <th scope="row">주거구분</th>
+        <td class="input">
+            <input type="radio" id="label_live_1" name="isHome" value="Y" checked="checked"/> <label
+                for="label_live_1">주거용</label>
+            <input type="radio" id="label_live_2" name="isHome" value="N"/> <label
+                for="label_live_2">비주거용</label>
+        </td>
+        <th scope="row">월선택</th>
+        <td class="input">
+            <select title="월선택" class="formSelect" style="width:160px;" name="option3">
+                <option value="1">1월</option>
+                <option value="2">2월</option>
+                <option value="3">3월</option>
+                <option value="4">4월</option>
+                <option value="5">5월</option>
+                <option value="6">6월</option>
+                <option value="7">7월</option>
+                <option value="8">8월</option>
+                <option value="9">9월</option>
+                <option value="10">10월</option>
+                <option value="11">11월</option>
+                <option value="12">12월</option>
+            </select>
+        </td>
+    </tr>
+    <tr>
+        <th scope="row">대가족요금/<br/>생명유지장치 요금</th>
+        <td colspan="3" class="input">
+            <input type="radio" id="label_family_1" name="option1" value="0" checked="checked"/> <label
+                for="label_family_1">해당없음</label>
+            <input type="radio" id="label_family_2" name="option1" value="1"/> <label for="label_family_2">5인이상
+            가구</label>
+            <input type="radio" id="label_family_3" name="option1" value="2"/> <label for="label_family_3">3자녀이상
+            가구</label>
+            <input type="radio" id="label_family_4" name="option1" value="3"/> <label
+                for="label_family_4">생명유지장치</label>
+            <input type="radio" id="label_family_5" name="option1" value="4"/> <label
+                for="label_family_5">출산가구</label>
+        </td>
+    </tr>
+    <tr>
+        <th scope="row">복지할인요금</th>
+        <td class="input">
+            <select title="복지할인요금" class="formSelect" style="width:160px;" name="option2">
+                <option value="">해당없음</option>
+                <option value="1">독립유공자</option>
+                <option value="2">국가유공자</option>
+                <option value="3">5.18 민주유공자</option>
+                <option value="4">장애인</option>
+                <option value="5">기초생활(생계·의료)</option>
+                <option value="6">기초생활(주거·교육)</option>
+                <option value="7">사회복지시설</option>
+                <option value="8">차상위계층</option>
+            </select>
+        </td>
+        <th scope="row">사용량</th>
+        <td class="input">
+            <input type="text" name="usage" style="width:150px;" title="사용량"/> KWh
+        </td>
+    </tr>
+    </tbody>
 </div>
 </body>
 </html>
