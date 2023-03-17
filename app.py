@@ -1,8 +1,6 @@
 from io import BytesIO
-
 import os
 import sys
-
 sys.path.append('/Users/gyeongdeokpark/Desktop/YOLOv5-Flask-1-master/yolov5')
 import random
 import numpy as np
@@ -13,6 +11,7 @@ from PIL import Image
 from yolov5.models.experimental import attempt_load
 from yolov5.utils.general import check_img_size, non_max_suppression
 from yolov5.utils.torch_utils import select_device, time_sync
+
 from yolov5.utils.downloads import attempt_download
 
 app = Flask(__name__, static_folder='templates')
@@ -182,35 +181,34 @@ def detect_on_frame(img):
     pred = non_max_suppression(pred, 0.4, 0.5, None, False, max_det=1000)
 
     det_list = []
-    confidence_threshold = 0.75  # 원하는 쓰레쉬홀드 값을 설정하세요.
 
     for i, det in enumerate(pred):
-        if len(det):
+        if len(det) == 8:
             det[:, :4] = scale_coords(img_in.shape[2:], det[:, :4], img.shape).round()
+            print(len(det))
 
             for *xyxy, conf, cls in det:
-                if conf > confidence_threshold:  # 쓰레쉬홀드 값보다 높은 경우에만 인식된 객체를 고정
-                    original_label = names[int(cls)]
-                    new_label = label_mapping.get(original_label, original_label)
-                    if new_label != '':
-                        det_list.append((xyxy, new_label))
+                original_label = names[int(cls)]
+                new_label = label_mapping.get(original_label, original_label)
+                if new_label != '':
+                    det_list.append((xyxy, new_label))
 
-    sorted_det_list = sorted(det_list, key=lambda x: x[0][0])
-    label_str = ""
+            sorted_det_list = sorted(det_list, key=lambda x: x[0][0])
+            label_str = ""
 
-    for xyxy, new_label in sorted_det_list:
-        if new_label == 'meter':
-            plot_one_box(xyxy, img, label=new_label, color=None, line_thickness=None)
-        else:
-            position = (int(xyxy[0]), int(img.shape[0]) - 30)
-            plot_one_box(xyxy, img, label=new_label, color=None, line_thickness=None, position=position)
-            label_str += new_label
+            for xyxy, new_label in sorted_det_list:
+                if new_label == 'meter':
+                    plot_one_box(xyxy, img, label=new_label, color=None, line_thickness=None)
+                else:
+                    position = (int(xyxy[0]), int(img.shape[0]) - 30)
+                    plot_one_box(xyxy, img, label=new_label, color=None, line_thickness=None, position=position)
+                    label_str += new_label
 
-    if label_str:
-        label_float = float(label_str.lstrip('0'))
-    else:
-        label_float = 0
-    print(label_float)
+            if label_str:
+                label_float = float(label_str.lstrip('0'))
+            else:
+                label_float = 0
+            print(label_float)
     return img
 
 
