@@ -167,7 +167,6 @@ def detect_image():
             return send_file(img_io, mimetype='image/jpeg')
 
 
-
 def detect_on_frame(img):
     imgsz = check_img_size(img_size, s=stride)
     img_in, _, _ = letterbox(img, new_shape=imgsz, auto=True, scale_fill=False, scaleup=True)
@@ -183,16 +182,18 @@ def detect_on_frame(img):
     pred = non_max_suppression(pred, 0.4, 0.5, None, False, max_det=1000)
 
     det_list = []
+    confidence_threshold = 0.75  # 원하는 쓰레쉬홀드 값을 설정하세요.
 
     for i, det in enumerate(pred):
         if len(det):
             det[:, :4] = scale_coords(img_in.shape[2:], det[:, :4], img.shape).round()
 
             for *xyxy, conf, cls in det:
-                original_label = names[int(cls)]
-                new_label = label_mapping.get(original_label, original_label)
-                if new_label != '':
-                    det_list.append((xyxy, new_label))
+                if conf > confidence_threshold:  # 쓰레쉬홀드 값보다 높은 경우에만 인식된 객체를 고정
+                    original_label = names[int(cls)]
+                    new_label = label_mapping.get(original_label, original_label)
+                    if new_label != '':
+                        det_list.append((xyxy, new_label))
 
     sorted_det_list = sorted(det_list, key=lambda x: x[0][0])
     label_str = ""
@@ -205,11 +206,12 @@ def detect_on_frame(img):
             plot_one_box(xyxy, img, label=new_label, color=None, line_thickness=None, position=position)
             label_str += new_label
 
-    label_float = float(label_str.lstrip('0'))
+    if label_str:
+        label_float = float(label_str.lstrip('0'))
+    else:
+        label_float = 0
     print(label_float)
     return img
-
-
 
 
 def generate_frames():
