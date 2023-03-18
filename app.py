@@ -1,18 +1,17 @@
 from io import BytesIO
 import os
 import sys
-sys.path.append('/Users/gyeongdeokpark/Desktop/YOLOv5-Flask-1-master/yolov5')
+# sys.path.append('/Users/gyeongdeokpark/Desktop/Electricity_meter-main/yolov5')
 import random
 import numpy as np
 import cv2
 import torch
 from flask import Flask, render_template, Response, request, send_file
 from PIL import Image
-from yolov5.models.experimental import attempt_load
-from yolov5.utils.general import check_img_size, non_max_suppression
-from yolov5.utils.torch_utils import select_device, time_sync
-
-from yolov5.utils.downloads import attempt_download
+from models.experimental import attempt_load
+from utils.general import check_img_size, non_max_suppression
+from utils.torch_utils import select_device, time_sync
+from utils.downloads import attempt_download
 
 app = Flask(__name__, static_folder='templates')
 
@@ -130,9 +129,9 @@ def clip_coords(boxes, img_shape):
 
 def detect_on_uploaded_image(image):
     img = np.array(image)
-    result_img = detect_on_frame(img)
+    result_img, label_float = detect_on_frame(img)  # 변경됨
     result_img = Image.fromarray(cv2.cvtColor(result_img, cv2.COLOR_BGR2RGB))
-    return result_img
+    return result_img, label_float  # 변경됨
 
 
 def fix_image_rotation(image):
@@ -152,18 +151,26 @@ def fix_image_rotation(image):
     return image
 
 
-@app.route('/detect_image', methods=['POST'])
-def detect_image():
+@app.route('/detect_images', methods=['POST'])
+def detect_images():
     if request.method == 'POST':
-        file = request.files['image']
-        if file:
-            image = Image.open(file.stream)
-            image = fix_image_rotation(image)  # Add this line to fix the rotation
-            result_img = detect_on_uploaded_image(image)
-            img_io = BytesIO()
-            result_img.save(img_io, 'JPEG', quality=70)
-            img_io.seek(0)
-            return send_file(img_io, mimetype='image/jpeg')
+        image_files = {'image1': None, 'image2': None}
+        label_floats = {'image1': 0, 'image2': 0}
+        for image_key in image_files.keys():
+            file = request.files[image_key]
+            if file:
+                image = Image.open(file.stream)
+                image = fix_image_rotation(image)  # Add this line to fix the rotation
+                result_img, label_float = detect_on_uploaded_image(image)  # 변경됨
+                img_io = BytesIO()
+                result_img.save(img_io, 'JPEG', quality=70)
+                img_io.seek(0)
+                image_files[image_key] = img_io
+                label_floats[image_key] = label_float
+
+        label_kwh = label_floats['image1'] - label_floats['image2']
+        return render_template('index.html', image1=image_files['image1'], image2=image_files['image2'],
+                               label_float1=label_floats['image1'], label_float2=label_floats['image2'], label_kwh=label_kwh)
 
 
 def detect_on_frame(img):
@@ -187,7 +194,8 @@ def detect_on_frame(img):
             det[:, :4] = scale_coords(img_in.shape[2:], det[:, :4], img.shape).round()
             print(len(det))
 
-            for *xyxy, conf, cls in det:
+            label_str = None  # 변수 초기화
+            for *xyxy, conf, cls in reversed(det):
                 original_label = names[int(cls)]
                 new_label = label_mapping.get(original_label, original_label)
                 if new_label != '':
@@ -204,17 +212,18 @@ def detect_on_frame(img):
                     plot_one_box(xyxy, img, label=new_label, color=None, line_thickness=None, position=position)
                     label_str += new_label
 
-            if label_str:
-                label_float = float(label_str.lstrip('0'))
-            else:
-                label_float = 0
-            print(label_float)
-    return img
+    label_float = 0
+    if label_str:
+        label_float = float(label_str.lstrip('0'))
+
+    print(label_float)
+    return img, label_float
+
 
 
 def generate_frames():
     while True:
-        ref, frame = camera.read()
+        ref, fame = camera.read()
         if not ref:
             break
         else:

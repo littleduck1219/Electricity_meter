@@ -1,84 +1,44 @@
-const header = document.querySelector('#header');
-const content = document.querySelector('#content');
-const footer = document.querySelector('#footer');
-
-if (header && content && footer) {
-  function resize() {
-    if (window.innerWidth < 500) {
-      header.style.fontSize = '20px';
-      content.style.fontSize = '16px';
-      footer.style.fontSize = '18px';
-    } else {
-      header.style.fontSize = '24px';
-      content.style.fontSize = '20px';
-      footer.style.fontSize = '22px';
-    }
-  }
-
-  window.onresize = resize;
-  resize();
-}
-
 $(document).ready(function() {
   $(".menu-button").click(function() {
-    var contentId = $(this).attr("data-content-id");
-    $(".container-1 > div").hide();
+    var contentId = $(this).data("content-id");
+    $(".main-title").hide();
+    $(".content-container > div").hide();
     $("#" + contentId).show();
-  });
-});
-
-const popupButton = document.querySelector('#popup-button');
-const popup = document.querySelector('#popup');
-const closeButton = document.querySelector('#close-button');
-
-if (popupButton && popup && closeButton) {
-  popupButton.addEventListener('click', () => {
-    popup.style.display = 'block';
+    $("#all-calculate").hide();
   });
 
-  closeButton.addEventListener('click', () => {
-    popup.style.display = 'none';
+  $(".calculate-btn-go").click(function() {
+    $("#content1").hide();
+    $("#all-calculate").show();
   });
-}
 
-window.onload = () => {
-  $("#sendbutton").click(() => {
-    imagebox = $("#imagebox");
-    link = $("#link");
-    input = $("#imageinput")[0];
-    if (input.files && input.files[0]) {
-      let formData = new FormData();
-      formData.append("video", input.files[0]);
-      $.ajax({
-        url: "/detect", // fix this to your liking
-        type: "POST",
-        data: formData,
-        cache: false,
-        processData: false,
-        contentType: false,
-        error: function (data) {
-          console.log("upload error", data);
-          console.log(data.getAllResponseHeaders());
-        },
-        success: function (data) {
-          console.log(data);
-          // bytestring = data["status"];
-          // image = bytestring.split("'")[1];
-          $("#link").css("visibility", "visible");
-          $("#download").attr("href", "static/" + data);
-          console.log(data);
-        },
-      });
-    }
-  });
-};
+  $("#detect-button").click(function() {
+    let formData = new FormData();
+    let image1 = $("input[name='image1']")[0].files[0];
+    let image2 = $("input[name='image2']")[0].files[0];
 
-const buttons = document.querySelectorAll('.contract-type-button');
+    formData.append("image1", image1);
+    formData.append("image2", image2);
 
-if (buttons.length) {
-  buttons.forEach((button) => {
-    button.addEventListener('click', () => {
-      // code to handle button click
+    $.ajax({
+      url: "/detect_images",
+      type: "POST",
+      data: formData,
+      cache: false,
+      processData: false,
+      contentType: false,
+      success: function(response) {
+        const label_float1 = response.label_float1;
+        const label_float2 = response.label_float2;
+        console.log("Label float 1:", label_float1);
+        console.log("Label float 2:", label_float2);
+
+        $("#content1").hide();
+        $("#all-calculate").show();
+      },
+      error: function(jqXHR, textStatus, errorThrown) {
+        console.log("Error:", textStatus, errorThrown);
+      }
     });
   });
-}
+});
