@@ -214,17 +214,16 @@
                                     <p>Image 2:</p>
                                     <input type="file" name="image2" accept="image/*">
                                     <br><br>
-                                    <button id="detect-button" type="button">Detect</button>
                                 </form>
                                 {% if image1 %}
                                 <h3>Image 1:</h3>
-                                <!--                            <img src="{{ image1 }}" alt="Image 1">-->
-                                <p>Label float: {{ label_float1 }}</p>
+                                <p>{{ image1.filename }}</p>
+                                <p id="label-float-1">Label float 1: </p>
                                 {% endif %}
                                 {% if image2 %}
                                 <h3>Image 2:</h3>
-                                <!--                            <img src="{{ image2 }}" alt="Image 2">-->
-                                <p>Label float: {{ label_float2 }}</p>
+                                <p>{{ image2.filename }}</p>
+                                <p id="label-float-2">Label float 2: </p>
                                 {% endif %}
                             </div>
                             <div>
@@ -826,6 +825,7 @@
 
 
 
+
                     </script>
 
                     <div id="result" style="display:none;">
@@ -1114,6 +1114,7 @@
 
 						$('#result').show();
 					}
+
 
 
 

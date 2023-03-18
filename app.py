@@ -129,9 +129,9 @@ def clip_coords(boxes, img_shape):
 
 def detect_on_uploaded_image(image):
     img = np.array(image)
-    result_img, label_float = detect_on_frame(img)  # 변경됨
+    result_img, label_float = detect_on_frame(img)
     result_img = Image.fromarray(cv2.cvtColor(result_img, cv2.COLOR_BGR2RGB))
-    return result_img, label_float  # 변경됨
+    return result_img, label_float
 
 
 def fix_image_rotation(image):
@@ -155,7 +155,7 @@ def fix_image_rotation(image):
 def detect_images():
     if request.method == 'POST':
         image_files = {'image1': None, 'image2': None}
-        label_floats = {'image1': 0, 'image2': 0}
+        label_floats = {'image1': None, 'image2': None}
         for image_key in image_files.keys():
             file = request.files[image_key]
             if file:
@@ -168,9 +168,13 @@ def detect_images():
                 image_files[image_key] = img_io
                 label_floats[image_key] = label_float
 
-        label_kwh = label_floats['image1'] - label_floats['image2']
+        label_kwh = None
+        if label_floats['image1'] is not None and label_floats['image2'] is not None:
+            label_kwh = label_floats['image1'] - label_floats['image2']
+        print(label_kwh)
         return render_template('index.html', image1=image_files['image1'], image2=image_files['image2'],
                                label_float1=label_floats['image1'], label_float2=label_floats['image2'], label_kwh=label_kwh)
+
 
 
 def detect_on_frame(img):
@@ -189,12 +193,13 @@ def detect_on_frame(img):
 
     det_list = []
 
+    label_str = ""  # 변수 초기화
+
     for i, det in enumerate(pred):
         if len(det) == 8:
             det[:, :4] = scale_coords(img_in.shape[2:], det[:, :4], img.shape).round()
             print(len(det))
 
-            label_str = None  # 변수 초기화
             for *xyxy, conf, cls in reversed(det):
                 original_label = names[int(cls)]
                 new_label = label_mapping.get(original_label, original_label)
@@ -202,7 +207,6 @@ def detect_on_frame(img):
                     det_list.append((xyxy, new_label))
 
             sorted_det_list = sorted(det_list, key=lambda x: x[0][0])
-            label_str = ""
 
             for xyxy, new_label in sorted_det_list:
                 if new_label == 'meter':
@@ -218,6 +222,7 @@ def detect_on_frame(img):
 
     print(label_float)
     return img, label_float
+
 
 
 

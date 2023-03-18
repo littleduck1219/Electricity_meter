@@ -8,11 +8,6 @@ $(document).ready(function() {
   });
 
   $(".calculate-btn-go").click(function() {
-    $("#content1").hide();
-    $("#all-calculate").show();
-  });
-
-  $("#detect-button").click(function() {
     let formData = new FormData();
     let image1 = $("input[name='image1']")[0].files[0];
     let image2 = $("input[name='image2']")[0].files[0];
@@ -32,6 +27,18 @@ $(document).ready(function() {
         const label_float2 = response.label_float2;
         console.log("Label float 1:", label_float1);
         console.log("Label float 2:", label_float2);
+
+        // Calculate label_kwh and set input value
+        const label_kwh = (label_float1 - label_float2).toFixed(2);
+        $("input[name='usage']").val(label_kwh);
+
+        // Update label_float1 and label_float2 values in HTML
+        if (label_float1) {
+          $("#label-float-1").text("Label float 1: " + label_float1);
+        }
+        if (label_float2) {
+          $("#label-float-2").text("Label float 2: " + label_float2);
+        }
 
         $("#content1").hide();
         $("#all-calculate").show();
