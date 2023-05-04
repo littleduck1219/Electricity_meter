@@ -41,7 +41,7 @@
 - 2023.03.08 labeling 완료
 
 - 2023.03.09 YOLOv5 모델 학습완료\
-    accurancy 0.65 미만
+    accurancy 0.2 미만
     - 개선방안\
         데이터 추가 수집\
         OCR시도\
