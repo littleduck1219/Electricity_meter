@@ -1,5 +1,5 @@
 # Electricity_meter
-# 전기 계량기 인식 프로젝트
+# 전력량계 인식 프로젝트
 
 ## 1. 개요
 ![Screenshot 2023-02-27 at 9 51 09 AM](https://user-images.githubusercontent.com/107936957/223613984-9705a61e-3c30-44b7-bfb9-b4efbccaa7bb.png)
